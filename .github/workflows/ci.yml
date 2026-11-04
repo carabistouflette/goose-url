@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential cmake ninja-build python3
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake ninja-build python3 pkg-config libcurl4-openssl-dev nodejs
       - name: Setup Goose compiler
         run: make setup
       - name: Code format & type check
@@ -18,5 +18,12 @@ jobs:
         run: make test
       - name: Fuzzing & differential tests
         run: make fuzz
-      - name: Microbenchmarks
-        run: make bench
+      - name: Multi-ecosystem benchmarks
+        run: make bench-compare
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-evidence
+          path: |
+            .build/compare_results.json
+          if-no-files-found: ignore

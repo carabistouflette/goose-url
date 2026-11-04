@@ -30,6 +30,23 @@ fn bench_parse(iterations: i64) {
     print("bench_parse:      ", iterations, " ops in ", elapsed, " s (", ops_per_sec as i64, " ops/sec, ", ns_per_op as i64, " ns/op, checksum=", checksum, ")");
 }
 
+fn bench_parse_view(iterations: i64) {
+    let target = "https://user:pass@example.com:8443/api/v1/resource/items?filter=active&sort=desc#section-1";
+    let start = clock();
+    var checksum: i64 = 0;
+    for _ in iterations {
+        let v, err = url::parse_view(target);
+        if err.kind == url::ErrorKind.None {
+            checksum += v.port + v.path.len;
+        }
+    }
+    let elapsed = clock() - start;
+    let ops_per_sec = iterations / elapsed;
+    let ns_per_op = (elapsed / iterations) * 1000000000.0;
+
+    print("bench_parse_view: ", iterations, " ops in ", elapsed, " s (", ops_per_sec as i64, " ops/sec, ", ns_per_op as i64, " ns/op, checksum=", checksum, ")");
+}
+
 fn bench_resolve(iterations: i64) {
     let base_str = "http://a/b/c/d;p?q";
     let base, b_err = url::parse(base_str);
@@ -95,6 +112,7 @@ fn main() {
 
     print("=== goose-url microbenchmark (iterations=", iterations, ") ===");
     bench_parse(iterations);
+    bench_parse_view(iterations);
     bench_resolve(iterations);
     bench_dot_segments(iterations);
     bench_query_parse(iterations);

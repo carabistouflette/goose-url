@@ -41,5 +41,8 @@ bench:
 	"$(GOOSE)" build -O2 --cc "$(CC)" -o .build/bench bench/bench.goose
 	./.build/bench $(BENCH_ITERATIONS)
 
+bench-compare:
+	python3 scripts/compare.py
+
 clean:
-	rm -rf .build __pycache__ scripts/__pycache__ tests/__pycache__
+	rm -rf .build __pycache__ scripts/__pycache__ tests/__pycache__ bench/__pycache__

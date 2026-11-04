@@ -217,8 +217,25 @@ fn test_error_cases() {
     assert(err_unclosed_ipv6.kind == url::ErrorKind.InvalidHost);
 }
 
+fn test_url_view() {
+    let raw = "https://user:pass@example.com:8443/api/v1/resource?filter=active#sec-1";
+    let v, err = url::parse_view(raw);
+    assert(err.kind == url::ErrorKind.None);
+    assert(v.scheme == "https");
+    assert(v.has_authority);
+    assert(v.userinfo == "user:pass");
+    assert(v.host == "example.com");
+    assert(v.port == 8443);
+    assert(v.path == "/api/v1/resource");
+    assert(v.has_query);
+    assert(v.query == "filter=active");
+    assert(v.has_fragment);
+    assert(v.fragment == "sec-1");
+}
+
 fn main() {
     test_basic_parsing();
+    test_url_view();
     test_ipv6_host();
     test_file_url();
     test_urn_url();

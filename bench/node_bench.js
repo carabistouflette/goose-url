@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Node.js benchmark using WHATWG URL (Ada backend)
 const { performance } = require('perf_hooks');
 

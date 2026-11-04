@@ -2,10 +2,11 @@
 
 GOOSE ?= .toolchain/goose/build/goose
 CC ?= gcc
+SANITIZER_CC ?= gcc
 BENCH_ITERATIONS ?= 100000
 
 .NOTPARALLEL:
-.PHONY: all setup format check test bench fuzz clean
+.PHONY: all setup format check test bench bench-compare fuzz sanitize clean
 
 all: test
 
@@ -13,10 +14,10 @@ setup:
 	./scripts/setup-goose.sh
 
 format:
-	"$(GOOSE)" format url.goose tests examples bench
+	"$(GOOSE)" format url.goose address.goose tests examples bench
 
 check:
-	"$(GOOSE)" format --check url.goose tests examples bench
+	"$(GOOSE)" format --check url.goose address.goose tests examples bench
 	"$(GOOSE)" check tests/api.goose
 	"$(GOOSE)" check tests/fuzz.goose
 	"$(GOOSE)" check bench/bench.goose
@@ -34,7 +35,13 @@ test:
 
 fuzz:
 	mkdir -p .build
-	python3 scripts/fuzz.py
+	python3 scripts/fuzz.py --goose "$(abspath $(GOOSE))" --cc "$(CC)"
+
+sanitize:
+	mkdir -p .build
+	URL_SANITIZER_CC="$(SANITIZER_CC)" "$(GOOSE)" build tests/api.goose --standalone --debug --no-bce --cc "$(CURDIR)/scripts/sanitizer-cc.py" -o .build/api-sanitize
+	ASAN_OPTIONS=detect_leaks=1:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1 ./.build/api-sanitize
+	URL_SANITIZER_CC="$(SANITIZER_CC)" ASAN_OPTIONS=detect_leaks=1:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1 python3 scripts/fuzz.py --goose "$(abspath $(GOOSE))" --cc "$(CURDIR)/scripts/sanitizer-cc.py"
 
 bench:
 	mkdir -p .build
@@ -42,7 +49,7 @@ bench:
 	./.build/bench $(BENCH_ITERATIONS)
 
 bench-compare:
-	python3 scripts/compare.py
+	python3 scripts/compare.py --goose "$(abspath $(GOOSE))" --cc "$(CC)"
 
 clean:
 	rm -rf .build __pycache__ scripts/__pycache__ tests/__pycache__ bench/__pycache__

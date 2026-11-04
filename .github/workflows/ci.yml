@@ -5,25 +5,26 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        cc: [gcc, clang]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential cmake ninja-build python3 pkg-config libcurl4-openssl-dev nodejs
-      - name: Setup Goose compiler
-        run: make setup
-      - name: Code format & type check
-        run: make check
-      - name: Unit & integration tests
-        run: make test
-      - name: Fuzzing & differential tests
-        run: make fuzz
-      - name: Multi-ecosystem benchmarks
-        run: make bench-compare
-      - uses: actions/upload-artifact@v4
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake ninja-build python3 pkg-config libcurl4-openssl-dev nodejs clang
+      - run: make setup
+      - run: make check test fuzz CC=${{ matrix.cc }}
+      - run: make sanitize SANITIZER_CC=${{ matrix.cc }}
+      - if: matrix.cc == 'gcc'
+        run: make bench-compare CC=gcc
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: benchmark-evidence
+          name: validation-${{ matrix.cc }}
           path: |
             .build/compare_results.json
-          if-no-files-found: ignore
+            .build/fuzz-results.json
+            .build/fuzz-failure.txt
+          include-hidden-files: true
+          if-no-files-found: error

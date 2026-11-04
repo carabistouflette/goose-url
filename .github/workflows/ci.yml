@@ -1,0 +1,22 @@
+name: CI
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake ninja-build python3
+      - name: Setup Goose compiler
+        run: make setup
+      - name: Code format & type check
+        run: make check
+      - name: Unit & integration tests
+        run: make test
+      - name: Fuzzing & differential tests
+        run: make fuzz
+      - name: Microbenchmarks
+        run: make bench

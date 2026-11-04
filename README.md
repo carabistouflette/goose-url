@@ -45,9 +45,13 @@ fn main() {
 }
 ```
 
-For a published dependency use `import url from
-"carabistouflette/goose-url@FULL_COMMIT";`, replacing `FULL_COMMIT` with an
-immutable full revision. See [the API contract](docs/API.md) for ownership.
+For an immutable published dependency, use this root binding:
+
+```goose
+import url from "carabistouflette/goose-url@91bd034844894e7174607a81147bbda58b556ff5";
+```
+
+See [the API contract](docs/API.md) for ownership.
 
 ## Bounds and errors
 

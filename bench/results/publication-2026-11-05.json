@@ -1,0 +1,516 @@
+{
+  "schema": 1,
+  "recorded_utc": "2026-11-04T23:48:18.885782+00:00",
+  "source_revision": "91bd034844894e7174607a81147bbda58b556ff5",
+  "source_dirty": false,
+  "source_sha256": {
+    "url.goose": "8ef5325ac121d6d609752b551e7dcf2f6e39a54dd7e844c7419cfd2f159c92df",
+    "address.goose": "c366b56badfc697f669161106b1e2c1694f9a2435496d66e85bd3c897667ce1c",
+    "scripts/sanitizer-cc.py": "d8f8a73434df6f9b53e9084132f51627747862459a8d2e2f52baca0f06eca1d3",
+    "bench/bench.goose": "1182f10465e4549a8534eba2a139ad0f71eb25281087231aa9afa8b7e48edbad",
+    "bench/curl_bench.c": "ee2ee82fbdb5c574d5abff82f876f01a0ca92c9edf0ecdd8c8b744c98ea7a438",
+    "bench/node_bench.js": "c7f375d19ab51b638c46806868dec2bc7bd1636e1bfc0a1b521c6670711d8797",
+    "bench/python_bench.py": "5d75506601ee26388d174e4cc13e609f59a0573899c3c9d4f05c52c8cd1ee6e5",
+    "scripts/compare.py": "cafb67e2087e6e58d6991b78a0f1050da605a76199a74be10cf851679abc1f63",
+    "GOOSE_REVISION": "64e14b181dfe96743211738fb0f1b1f7798ea940da2ca50ff122e6f028c24e15"
+  },
+  "binary_sha256": {
+    "bench": "907a26a1de7dad6b16a5ccb18d2debef3f1b3af7a44dce0caaf1aec118a1a705",
+    "curl_bench": "a7e82c7667f34a676a2409f95eb3bd9318031ceeb21b4a9cef46217bfdff77df"
+  },
+  "goose_revision": "eadca409f68210893f366e60d0c2f0dc29a339be",
+  "goose_version": "goose eadca40 (runtime 3025e5810379)",
+  "compiler": "/usr/bin/gcc",
+  "compiler_version": "gcc (GCC) 16.2.1 20260810\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+  "python_version": "3.14.9 (main, Oct 25 2026, 14:52:47) [GCC 16.2.1 20260810]",
+  "node_version": "v26.13.0",
+  "libcurl_pkgconfig_version": "8.23.0",
+  "platform": "Linux-7.2.11-arch1-1-x86_64-with-glibc2.44",
+  "machine": "x86_64",
+  "cpu_model": "Intel(R) Core(TM) Ultra 7 258V",
+  "cpu_count": 8,
+  "affinity": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "shared_host": true,
+  "iterations": 100000,
+  "samples": 3,
+  "excluded_process_warmups": 1,
+  "build": {
+    "goose": {
+      "command": [
+        "/tmp/goose-http-standalone-kn_xeeq3/.toolchain/goose/build/goose",
+        "build",
+        "-O2",
+        "--standalone",
+        "--cc",
+        "/usr/bin/gcc",
+        "-v",
+        "-o",
+        "<SOURCE>/.build/bench",
+        "bench/bench.goose"
+      ],
+      "stdout": "/usr/bin/gcc -O2 <HOME>/.goose/build/prog/bench-5a99701e/bench.c -o <SOURCE>/.build/bench -lm -pthread -ldl\nbuilt <SOURCE>/.build/bench\n",
+      "stderr": ""
+    },
+    "curl": {
+      "command": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-D_POSIX_C_SOURCE=200809L",
+        "-O2",
+        "bench/curl_bench.c",
+        "-lcurl",
+        "-o",
+        "<SOURCE>/.build/curl_bench"
+      ],
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  "skipped": {},
+  "raw_samples": {
+    "goose": [
+      {
+        "command": [
+          "<SOURCE>/.build/bench",
+          "100000"
+        ],
+        "stdout": "=== goose-url microbenchmark (iterations=100000) ===\nbench_parse:      100000 ops in 0.02494052000110969 s (4009539 ops/sec, 249 ns/op, checksum=846500000)\nbench_parse_view: 100000 ops in 0.01795913599198684 s (5568196 ops/sec, 179 ns/op, checksum=846500000)\nbench_resolve:    100000 ops in 0.02878581394907087 s (3473933 ops/sec, 287 ns/op, checksum=200000)\nbench_dot_remove: 100000 ops in 0.008310007979162037 s (12033682 ops/sec, 83 ns/op, checksum=600000)\nbench_query_parse:100000 ops in 0.043484062945935875 s (2299693 ops/sec, 434 ns/op, checksum=600000)\nbench_origin:     100000 ops in 0.012185972998850048 s (8206156 ops/sec, 121 ns/op, checksum=2400000)\nbench_query_sort: 100000 ops in 0.07712205598363653 s (1296645 ops/sec, 771 ns/op, checksum=600000)\n",
+        "stderr": "",
+        "rows": {
+          "bench_parse": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.02494052000110969,
+            "reported_ops_sec": 4009539.0,
+            "reported_ns_op": 249.0,
+            "checksum": 846500000
+          },
+          "bench_parse_view": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.01795913599198684,
+            "reported_ops_sec": 5568196.0,
+            "reported_ns_op": 179.0,
+            "checksum": 846500000
+          },
+          "bench_resolve": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.02878581394907087,
+            "reported_ops_sec": 3473933.0,
+            "reported_ns_op": 287.0,
+            "checksum": 200000
+          },
+          "bench_dot_remove": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.008310007979162037,
+            "reported_ops_sec": 12033682.0,
+            "reported_ns_op": 83.0,
+            "checksum": 600000
+          },
+          "bench_query_parse": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.043484062945935875,
+            "reported_ops_sec": 2299693.0,
+            "reported_ns_op": 434.0,
+            "checksum": 600000
+          },
+          "bench_origin": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.012185972998850048,
+            "reported_ops_sec": 8206156.0,
+            "reported_ns_op": 121.0,
+            "checksum": 2400000
+          },
+          "bench_query_sort": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.07712205598363653,
+            "reported_ops_sec": 1296645.0,
+            "reported_ns_op": 771.0,
+            "checksum": 600000
+          }
+        }
+      },
+      {
+        "command": [
+          "<SOURCE>/.build/bench",
+          "100000"
+        ],
+        "stdout": "=== goose-url microbenchmark (iterations=100000) ===\nbench_parse:      100000 ops in 0.026549145055469126 s (3766599 ops/sec, 265 ns/op, checksum=846500000)\nbench_parse_view: 100000 ops in 0.01882668596226722 s (5311609 ops/sec, 188 ns/op, checksum=846500000)\nbench_resolve:    100000 ops in 0.03075421298854053 s (3251587 ops/sec, 307 ns/op, checksum=200000)\nbench_dot_remove: 100000 ops in 0.008756422030273825 s (11420189 ops/sec, 87 ns/op, checksum=600000)\nbench_query_parse:100000 ops in 0.0434653100091964 s (2300685 ops/sec, 434 ns/op, checksum=600000)\nbench_origin:     100000 ops in 0.01250088500091806 s (7999433 ops/sec, 125 ns/op, checksum=2400000)\nbench_query_sort: 100000 ops in 0.07339785195654258 s (1362437 ops/sec, 733 ns/op, checksum=600000)\n",
+        "stderr": "",
+        "rows": {
+          "bench_parse": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.026549145055469126,
+            "reported_ops_sec": 3766599.0,
+            "reported_ns_op": 265.0,
+            "checksum": 846500000
+          },
+          "bench_parse_view": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.01882668596226722,
+            "reported_ops_sec": 5311609.0,
+            "reported_ns_op": 188.0,
+            "checksum": 846500000
+          },
+          "bench_resolve": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.03075421298854053,
+            "reported_ops_sec": 3251587.0,
+            "reported_ns_op": 307.0,
+            "checksum": 200000
+          },
+          "bench_dot_remove": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.008756422030273825,
+            "reported_ops_sec": 11420189.0,
+            "reported_ns_op": 87.0,
+            "checksum": 600000
+          },
+          "bench_query_parse": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.0434653100091964,
+            "reported_ops_sec": 2300685.0,
+            "reported_ns_op": 434.0,
+            "checksum": 600000
+          },
+          "bench_origin": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.01250088500091806,
+            "reported_ops_sec": 7999433.0,
+            "reported_ns_op": 125.0,
+            "checksum": 2400000
+          },
+          "bench_query_sort": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.07339785195654258,
+            "reported_ops_sec": 1362437.0,
+            "reported_ns_op": 733.0,
+            "checksum": 600000
+          }
+        }
+      },
+      {
+        "command": [
+          "<SOURCE>/.build/bench",
+          "100000"
+        ],
+        "stdout": "=== goose-url microbenchmark (iterations=100000) ===\nbench_parse:      100000 ops in 0.02879732195287943 s (3472545 ops/sec, 287 ns/op, checksum=846500000)\nbench_parse_view: 100000 ops in 0.021321517997421324 s (4690097 ops/sec, 213 ns/op, checksum=846500000)\nbench_resolve:    100000 ops in 0.03042883099988103 s (3286356 ops/sec, 304 ns/op, checksum=200000)\nbench_dot_remove: 100000 ops in 0.008207931998185813 s (12183336 ops/sec, 82 ns/op, checksum=600000)\nbench_query_parse:100000 ops in 0.043742142035625875 s (2286124 ops/sec, 437 ns/op, checksum=600000)\nbench_origin:     100000 ops in 0.012101168977096677 s (8263664 ops/sec, 121 ns/op, checksum=2400000)\nbench_query_sort: 100000 ops in 0.0846809899667278 s (1180902 ops/sec, 846 ns/op, checksum=600000)\n",
+        "stderr": "",
+        "rows": {
+          "bench_parse": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.02879732195287943,
+            "reported_ops_sec": 3472545.0,
+            "reported_ns_op": 287.0,
+            "checksum": 846500000
+          },
+          "bench_parse_view": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.021321517997421324,
+            "reported_ops_sec": 4690097.0,
+            "reported_ns_op": 213.0,
+            "checksum": 846500000
+          },
+          "bench_resolve": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.03042883099988103,
+            "reported_ops_sec": 3286356.0,
+            "reported_ns_op": 304.0,
+            "checksum": 200000
+          },
+          "bench_dot_remove": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.008207931998185813,
+            "reported_ops_sec": 12183336.0,
+            "reported_ns_op": 82.0,
+            "checksum": 600000
+          },
+          "bench_query_parse": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.043742142035625875,
+            "reported_ops_sec": 2286124.0,
+            "reported_ns_op": 437.0,
+            "checksum": 600000
+          },
+          "bench_origin": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.012101168977096677,
+            "reported_ops_sec": 8263664.0,
+            "reported_ns_op": 121.0,
+            "checksum": 2400000
+          },
+          "bench_query_sort": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.0846809899667278,
+            "reported_ops_sec": 1180902.0,
+            "reported_ns_op": 846.0,
+            "checksum": 600000
+          }
+        }
+      }
+    ],
+    "curl": [
+      {
+        "command": [
+          "<SOURCE>/.build/curl_bench",
+          "100000"
+        ],
+        "stdout": "curl_url parse: 100000 ops in 0.051859165 s (1928299 ops/sec, 518.6 ns/op, checksum=844300000)\ncurl_url resolve: 100000 ops in 0.197354418 s (506703 ops/sec, 1973.5 ns/op, checksum=100000)\n",
+        "stderr": "",
+        "rows": {
+          "curl_url parse": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.051859165,
+            "reported_ops_sec": 1928299.0,
+            "reported_ns_op": 518.6,
+            "checksum": 844300000
+          },
+          "curl_url resolve": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.197354418,
+            "reported_ops_sec": 506703.0,
+            "reported_ns_op": 1973.5,
+            "checksum": 100000
+          }
+        }
+      },
+      {
+        "command": [
+          "<SOURCE>/.build/curl_bench",
+          "100000"
+        ],
+        "stdout": "curl_url parse: 100000 ops in 0.043175833 s (2316110 ops/sec, 431.8 ns/op, checksum=844300000)\ncurl_url resolve: 100000 ops in 0.190403204 s (525201 ops/sec, 1904.0 ns/op, checksum=100000)\n",
+        "stderr": "",
+        "rows": {
+          "curl_url parse": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.043175833,
+            "reported_ops_sec": 2316110.0,
+            "reported_ns_op": 431.8,
+            "checksum": 844300000
+          },
+          "curl_url resolve": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.190403204,
+            "reported_ops_sec": 525201.0,
+            "reported_ns_op": 1904.0,
+            "checksum": 100000
+          }
+        }
+      },
+      {
+        "command": [
+          "<SOURCE>/.build/curl_bench",
+          "100000"
+        ],
+        "stdout": "curl_url parse: 100000 ops in 0.051720687 s (1933462 ops/sec, 517.2 ns/op, checksum=844300000)\ncurl_url resolve: 100000 ops in 0.205598893 s (486384 ops/sec, 2056.0 ns/op, checksum=100000)\n",
+        "stderr": "",
+        "rows": {
+          "curl_url parse": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.051720687,
+            "reported_ops_sec": 1933462.0,
+            "reported_ns_op": 517.2,
+            "checksum": 844300000
+          },
+          "curl_url resolve": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.205598893,
+            "reported_ops_sec": 486384.0,
+            "reported_ns_op": 2056.0,
+            "checksum": 100000
+          }
+        }
+      }
+    ],
+    "node": [
+      {
+        "command": [
+          "/usr/bin/node",
+          "bench/node_bench.js"
+        ],
+        "stdout": "Node.js URL parse:    100000 ops in 0.074024 s (1350918 ops/sec, 740.2 ns/op, checksum=844300000)\nNode.js URL resolve:  100000 ops in 0.069673 s (1435285 ops/sec, 696.7 ns/op, checksum=200000)\n",
+        "stderr": "",
+        "rows": {
+          "Node.js URL parse": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.074024,
+            "reported_ops_sec": 1350918.0,
+            "reported_ns_op": 740.2,
+            "checksum": 844300000
+          },
+          "Node.js URL resolve": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.069673,
+            "reported_ops_sec": 1435285.0,
+            "reported_ns_op": 696.7,
+            "checksum": 200000
+          }
+        }
+      },
+      {
+        "command": [
+          "/usr/bin/node",
+          "bench/node_bench.js"
+        ],
+        "stdout": "Node.js URL parse:    100000 ops in 0.063686 s (1570199 ops/sec, 636.9 ns/op, checksum=844300000)\nNode.js URL resolve:  100000 ops in 0.051048 s (1958944 ops/sec, 510.5 ns/op, checksum=200000)\n",
+        "stderr": "",
+        "rows": {
+          "Node.js URL parse": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.063686,
+            "reported_ops_sec": 1570199.0,
+            "reported_ns_op": 636.9,
+            "checksum": 844300000
+          },
+          "Node.js URL resolve": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.051048,
+            "reported_ops_sec": 1958944.0,
+            "reported_ns_op": 510.5,
+            "checksum": 200000
+          }
+        }
+      },
+      {
+        "command": [
+          "/usr/bin/node",
+          "bench/node_bench.js"
+        ],
+        "stdout": "Node.js URL parse:    100000 ops in 0.063164 s (1583177 ops/sec, 631.6 ns/op, checksum=844300000)\nNode.js URL resolve:  100000 ops in 0.064001 s (1562474 ops/sec, 640.0 ns/op, checksum=200000)\n",
+        "stderr": "",
+        "rows": {
+          "Node.js URL parse": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.063164,
+            "reported_ops_sec": 1583177.0,
+            "reported_ns_op": 631.6,
+            "checksum": 844300000
+          },
+          "Node.js URL resolve": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.064001,
+            "reported_ops_sec": 1562474.0,
+            "reported_ns_op": 640.0,
+            "checksum": 200000
+          }
+        }
+      }
+    ],
+    "python": [
+      {
+        "command": [
+          "/usr/bin/python3",
+          "bench/python_bench.py"
+        ],
+        "stdout": "Python urlsplit parse:  100000 ops in 0.169615 s (   589569 ops/sec, 1696.2 ns/op, checksum=844300000)\nPython urljoin resolve: 100000 ops in 0.644859 s (   155073 ops/sec, 6448.6 ns/op, checksum=1400000)\n",
+        "stderr": "",
+        "rows": {
+          "Python urlsplit parse": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.169615,
+            "reported_ops_sec": 589569.0,
+            "reported_ns_op": 1696.2,
+            "checksum": 844300000
+          },
+          "Python urljoin resolve": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.644859,
+            "reported_ops_sec": 155073.0,
+            "reported_ns_op": 6448.6,
+            "checksum": 1400000
+          }
+        }
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "bench/python_bench.py"
+        ],
+        "stdout": "Python urlsplit parse:  100000 ops in 0.175676 s (   569231 ops/sec, 1756.8 ns/op, checksum=844300000)\nPython urljoin resolve: 100000 ops in 0.680147 s (   147027 ops/sec, 6801.5 ns/op, checksum=1400000)\n",
+        "stderr": "",
+        "rows": {
+          "Python urlsplit parse": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.175676,
+            "reported_ops_sec": 569231.0,
+            "reported_ns_op": 1756.8,
+            "checksum": 844300000
+          },
+          "Python urljoin resolve": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.680147,
+            "reported_ops_sec": 147027.0,
+            "reported_ns_op": 6801.5,
+            "checksum": 1400000
+          }
+        }
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "bench/python_bench.py"
+        ],
+        "stdout": "Python urlsplit parse:  100000 ops in 0.170893 s (   585163 ops/sec, 1708.9 ns/op, checksum=844300000)\nPython urljoin resolve: 100000 ops in 0.644094 s (   155257 ops/sec, 6440.9 ns/op, checksum=1400000)\n",
+        "stderr": "",
+        "rows": {
+          "Python urlsplit parse": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.170893,
+            "reported_ops_sec": 585163.0,
+            "reported_ns_op": 1708.9,
+            "checksum": 844300000
+          },
+          "Python urljoin resolve": {
+            "iterations": 100000,
+            "elapsed_seconds": 0.644094,
+            "reported_ops_sec": 155257.0,
+            "reported_ns_op": 6440.9,
+            "checksum": 1400000
+          }
+        }
+      }
+    ]
+  },
+  "boundaries": [
+    "Different contracts/work are measured. No universal ranking or speedup claim is valid.",
+    "Goose reports owned/view parsing, already-parsed-base resolution, dot removal and query/origin helpers.",
+    "libcurl allocates a CURLU per operation and reparses the base during each resolution; its checksum reads different fields.",
+    "Node uses the WHATWG URL parser; every sample is a fresh process including its own JIT activity within the timed loop.",
+    "Python repeatedly calls urllib.parse on identical strings; its URL splitting cache is not cleared.",
+    "Driver clocks exclude process startup and report their own loop durations. Whole-process warmups do not preserve JIT/cache state across processes.",
+    "One fixed input per workload; checksums prevent unchecked parse failures but do not establish parser semantic equivalence.",
+    "Goose -O2 selects language inlining; verbose build output records actual C commands. Native comparison uses explicit -O2.",
+    "Samples rotate driver order; shared-host scheduling/noise remains. No performance thresholds are used."
+  ],
+  "medians_ns_op": {
+    "goose": {
+      "bench_parse": 265.0,
+      "bench_parse_view": 188.0,
+      "bench_resolve": 304.0,
+      "bench_dot_remove": 83.0,
+      "bench_query_parse": 434.0,
+      "bench_origin": 121.0,
+      "bench_query_sort": 771.0
+    },
+    "curl": {
+      "curl_url parse": 517.2,
+      "curl_url resolve": 1973.5
+    },
+    "node": {
+      "Node.js URL parse": 636.9,
+      "Node.js URL resolve": 640.0
+    },
+    "python": {
+      "Python urlsplit parse": 1708.9,
+      "Python urljoin resolve": 6448.6
+    }
+  }
+}

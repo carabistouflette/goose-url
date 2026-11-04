@@ -62,3 +62,5 @@ compare decoded pairs. Every subprocess is bounded by a finite deadline, stdout
 and stderr are drained together, and child status/output counts are checked.
 This is deterministic mutation/property testing, not coverage-guided fuzzing or
 a proof of security.
+
+A [recorded clean-source sample](RESULTS.md) retains full raw provenance.

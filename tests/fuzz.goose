@@ -132,7 +132,7 @@ fn test_roundtrip_properties(p: Prng&, iterations: i64) {
         let u1, err1 = url::parse(raw);
         assert(err1.kind == url::ErrorKind.None);
 
-        let formatted = url::to_string(u1);
+        let formatted = checked_string(u1);
         let u2, err2 = url::parse(formatted);
         assert(err2.kind == url::ErrorKind.None);
 
@@ -153,7 +153,7 @@ fn test_random_junk_robustness(p: Prng&, iterations: i64) {
         // parse must either succeed or return a structured error, NEVER panic/crash.
         let u, err = url::parse(junk);
         if err.kind == url::ErrorKind.None {
-            let s = url::to_string(u);
+            let s = checked_string(u);
             assert(s.len <= url::MAX_URL_BYTES);
         } else {
             assert(err.offset >= 0);
@@ -170,7 +170,7 @@ fn test_resolution_invariants(p: Prng&, iterations: i64) {
         let r = select_ref(p.next_int(23));
         let resolved, r_err = url::resolve(base, r);
         assert(r_err.kind == url::ErrorKind.None);
-        let res_str = url::to_string(resolved);
+        let res_str = checked_string(resolved);
         assert(res_str.len > 0);
         assert(resolved.scheme == "http" || resolved.scheme == "g");
     }
@@ -213,7 +213,7 @@ fn test_modifier_invariants(p: Prng&, iterations: i64) {
         assert(u_port.fragment == u.fragment);
 
         // with_path
-        let u_path = url::with_path(u, "/a/b/../c");
+        let u_path, u_path_ok = url::with_path(u, "/a/b/../c"); assert(u_path_ok);
         assert(u_path.path == "/a/c");
         assert(u_path.scheme == u.scheme);
         assert(u_path.host == u.host);
@@ -222,7 +222,7 @@ fn test_modifier_invariants(p: Prng&, iterations: i64) {
         assert(u_path.fragment == u.fragment);
 
         // with_query
-        let u_query = url::with_query(u, "new=true");
+        let u_query, u_query_ok = url::with_query(u, "new=true"); assert(u_query_ok);
         assert(u_query.query == "new=true");
         assert(u_query.has_query);
         assert(u_query.scheme == u.scheme);
@@ -232,7 +232,7 @@ fn test_modifier_invariants(p: Prng&, iterations: i64) {
         assert(u_query.fragment == u.fragment);
 
         // with_fragment
-        let u_frag = url::with_fragment(u, "newtop");
+        let u_frag, u_frag_ok = url::with_fragment(u, "newtop"); assert(u_frag_ok);
         assert(u_frag.fragment == "newtop");
         assert(u_frag.has_fragment);
         assert(u_frag.scheme == u.scheme);
@@ -294,7 +294,7 @@ fn run_stdin_mode() {
             if err.kind != url::ErrorKind.None {
                 write_stdout("ERR\n");
             } else {
-                let formatted = url::to_string(u);
+                let formatted = checked_string(u);
                 write_stdout("OK ");
                 write_stdout(formatted);
                 write_stdout("\n");
@@ -321,7 +321,7 @@ fn run_stdin_mode() {
                     if r_err.kind != url::ErrorKind.None {
                         write_stdout("ERR\n");
                     } else {
-                        let res_str = url::to_string(resolved);
+                        let res_str = checked_string(resolved);
                         write_stdout("OK ");
                         write_stdout(res_str);
                         write_stdout("\n");
@@ -330,12 +330,10 @@ fn run_stdin_mode() {
             }
         } else if line[0] == 'Q' && line.len >= 2 && line[1] == ' ' {
             let target = line[2..];
-            let params = url::parse_query(target);
+            let params, query_error = url::parse_query(target);
             var formatted: u8[>..] = [];
-            url::format_query(params, formatted);
-            write_stdout("OK ");
-            write_stdout(formatted);
-            write_stdout("\n");
+            if query_error.kind != url::ErrorKind.None || !url::format_query(params, formatted) { write_stdout("ERR\n"); }
+            else { write_stdout("OK "); write_stdout(formatted); write_stdout("\n"); }
         } else {
             write_stdout("ERR UNKNOWN_CMD\n");
         }
@@ -360,3 +358,6 @@ fn main() {
 
     write_stdout("all goose-url property tests passed\n");
 }
+
+fn checked_string(u: url::Url&) -> u8[>..] { let out, error = url::to_string(u); assert(error.kind == url::ErrorKind.None); return out; }
+fn checked_query(input: const u8[:]) -> url::QueryParam[>..] { let params, error = url::parse_query(input); assert(error.kind == url::ErrorKind.None); return params; }

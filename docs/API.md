@@ -1,86 +1,112 @@
-# URI Parser and Resolver Contract
+# API contract
 
-Pure Goose implementation of Uniform Resource Identifiers (URI) conforming to RFC 3986.
-Zero native C shims, zero foreign function calls, completely memory-safe. Goose compiler
-pinned by `GOOSE_REVISION`.
+Experimental generic URI references, not WHATWG/browser URLs. The public contract
+is the functions listed here; other functions in `url.goose` and `address.goose`
+are implementation helpers. Inputs are bytes. URI syntax requires ASCII; use
+percent escapes for other octets. Query/percent codecs operate on arbitrary bytes.
 
-## Core Interface
+## Types and parsing
 
-- `parse_view(raw: const u8[:]) -> UrlView, Error`:
-  Zero-copy parser returning sub-slice views referencing `raw`. Performs character-set
-  validation, scheme/authority/path/query/fragment boundary decomposition, port parsing,
-  and IPv6 bracket syntax verification without allocating heap storage.
-- `parse(raw: const u8[:]) -> Url, Error`:
-  Owned parser. Returns a `Url` with normalized lowercase scheme and host buffers,
-  and owned growable buffers (`u8[]`) for userinfo, path, query, and fragment.
-- `to_string(url: Url&) -> u8[>..]`:
-  Reconstructs the full RFC 3986 URI string into a newly allocated builder buffer.
-- `format(url: Url&, out: u8[>..]&)`:
-  Appends the reconstructed URI representation onto an existing builder buffer `out`.
-- `resolve(base: Url&, reference: const u8[:]) -> Url, Error`:
-  Full RFC 3986 §5.2 reference resolution algorithm. Resolves relative references,
-  relative paths, network paths (`//...`), and queries against `base`. Removes dot-segments
-  from the target path per RFC 3986 §5.2.4.
-- `remove_dot_segments(path: const u8[:], out: u8[>..]&)`:
-  Normalizes path segments (`.` and `..`) per RFC 3986 §5.2.4.
-- `percent_decode(input: const u8[:], out: u8[>..]&) -> bool`:
-  Decodes percent-encoded octets (`%XX`). Returns `false` on truncated or non-hex sequences.
-- `percent_encode(input: const u8[:], out: u8[>..]&)`:
-  Encodes bytes outside the unreserved character set (`ALPHA / DIGIT / "-" / "." / "_" / "~"`).
-- `parse_query(query: const u8[:]) -> QueryParam[>..]`:
-  Parses `application/x-www-form-urlencoded` query strings into key-value pairs (`+` <-> space).
-- `format_query(params: QueryParam[:], out: u8[>..]&)`:
-  Serializes query parameters into form-urlencoded format.
+`Error { kind: ErrorKind, offset: i64 }`: `None` means success. Other kinds include
+`TooLong`, `InvalidScheme`, `InvalidAuthority`, `InvalidUserinfo`, `InvalidHost`,
+`InvalidPort`, `InvalidPath`, `InvalidQuery`, `InvalidFragment` and
+`InvalidPercentEncoding`. Offsets identify a detected byte/component boundary;
+constructed-value/resource errors can use zero. They are not always a pinpoint
+location of the first invalid byte. Empty input is a valid reference.
 
-## WHATWG URL Compatibility Surface
+`UrlView` borrows `raw`, `scheme`, `userinfo`, `host`, `path`, `query`, `fragment`.
+`Url` owns the corresponding fields. Both contain `has_authority`, `has_userinfo`,
+`has_port`, `has_query`, `has_fragment` flags and numeric `port: i32` (`-1` means
+no numeric value). `has_port=true, port=-1` preserves an explicitly empty port.
+`has_userinfo=true` preserves an empty userinfo delimiter. A failed owned parse
+returns empty fields; a failed view can retain `raw` for caller diagnostics.
 
-- `query_has(params: QueryParam[:], key: const u8[:]) -> bool`:
-  Checks whether a query parameter with `key` exists.
-- `query_get(params: QueryParam[:], key: const u8[:], out: u8[>..]&) -> bool`:
-  Retrieves the first value associated with `key` into `out`. Returns `false` if not found.
-- `query_append(params: QueryParam[>..]&, key: const u8[:], value: const u8[:])`:
-  Appends a new query parameter pair to `params`.
-- `query_set(params: QueryParam[>..]&, key: const u8[:], value: const u8[:])`:
-  Sets the value of `key` to `value`, updating the first occurrence and removing subsequent duplicates per WHATWG §6.3.
-- `query_delete(params: QueryParam[>..]&, key: const u8[:])`:
-  Removes all occurrences of `key` from `params`.
-- `query_sort(params: QueryParam[>..]&)`:
-  Sorts query parameter pairs by key bytes using a stable sort per WHATWG §6.3.
-- `origin(url: Url&, out: u8[>..]&)` / `origin_string(url: Url&) -> u8[>..]`:
-  Computes the ASCII serialization of the URL's origin per WHATWG §4.2. Omits default ports
-  (80 for `http`/`ws`, 443 for `https`/`wss`, 21 for `ftp`). Returns `"null"` for opaque schemes (`file:`, `urn:`).
-- `clone_url(url: Url&) -> Url`:
-  Clones a `Url` with newly owned deep copies of all buffer containers.
-- `with_scheme(url: Url&, new_scheme: const u8[:]) -> Url, bool`:
-  Functional modifier returning an updated `Url` with validated lowercase scheme.
-- `with_host(url: Url&, new_host: const u8[:]) -> Url, bool`:
-  Functional modifier returning an updated `Url` with validated lowercase host (including bracketed IPv6).
-- `with_port(url: Url&, new_port: i32) -> Url, bool`:
-  Functional modifier returning an updated `Url` with validated port (`0..65535` or `-1` to clear).
-- `with_path(url: Url&, new_path: const u8[:]) -> Url`:
-  Functional modifier returning an updated `Url` with dot-segment-normalized path.
-- `with_query(url: Url&, new_query: const u8[:]) -> Url`:
-  Functional modifier returning an updated `Url` with updated query string.
-- `with_fragment(url: Url&, new_frag: const u8[:]) -> Url`:
-  Functional modifier returning an updated `Url` with updated fragment string.
+- `parse_view(raw) -> UrlView, Error`: nonallocating borrowed component view.
+- `parse(raw) -> Url, Error`: owned fields; lowercases ASCII scheme/host. Numeric
+  ports serialize without leading zeroes. It does not remove path dot segments,
+  decode host/path escapes or canonicalize IP spelling.
 
-## Hard Bounds & Guarantees
+Syntax follows RFC 3986, including relative references, empty generic authorities,
+IPv6 and IPvFuture literals. Numeric ports are deliberately restricted to
+0..65535. Zone identifiers, raw Unicode/IRIs, IDNA and browser IPv4 rules are not
+implemented. Invalid dotted-decimal-looking names can be generic reg-names;
+parsing them is not validation of a routable IPv4 address. Empty HTTP hosts and
+scheme-specific requirements remain application policy.
 
-- **Length Bound**: `MAX_URL_BYTES = 65536` (64 KiB). Input strings and reconstructed URIs
-  exceeding this limit fail with `ErrorKind.TooLong`.
-- **Query Parameter Cap**: `MAX_QUERY_PARAMS = 1024`. Prevents hash-collision or memory-exhaustion
-  denial of service on pathological query strings.
-- **Port Bounds**: Explicitly checked to fit `0..65535`. Non-digit or overflowing ports return
-  `ErrorKind.InvalidPort`.
-- **IPv6 Syntax**: Bracketed hosts (`[...]`) must contain at least one `:` and strictly valid
-  hexadecimal digits or dots (for IPv4-mapped IPv6). Malformed bracketed hosts return
-  `ErrorKind.InvalidHost`.
-- **Error Safety**: On error, parser functions return a cleanly typed `Error` structure with
-  `kind` and byte `offset`. Returned URL structs are default-initialized; no partial state leaks.
+## Serialization, resolution and path reduction
 
-## Security & Non-Goals
+- `format(value: Url&, out: u8[>..]&) -> Error`: checks every field, delimiter flag,
+  path shape and final byte length before appending. Failure preserves `out`.
+- `to_string(value: Url&) -> u8[>..], Error`: same validation, fresh output; empty
+  output on error. Check the error because an empty valid reference also exists.
+- `resolve(base: Url&, reference) -> Url, Error`: validates an absolute base with
+  a scheme, parses the reference, and applies RFC 3986 section 5.2. It reduces
+  literal dot segments, not percent-encoded dots. Errors return an empty Url.
+- `remove_dot_segments(path, out) -> bool`: bounded byte-level section 5.2.4
+  reduction, appended atomically. This helper does not validate URI path grammar.
 
-- **SSRF Authorization**: Path normalization and URI parsing do NOT validate whether a target
-  network address is safe or allowed. Callers accepting untrusted input must inspect `host` and
-  `port` and enforce authorization policies prior to opening sockets or making HTTP requests.
-- **No Native Dependencies**: Does not link to platform resolver libraries or external C runtimes.
+Inputs and serialized outputs are at most `MAX_URL_BYTES=65536`. An existing
+output prefix counts against the limit. Resolution can merge two bounded paths
+(up to twice that cap) before reduction, but the final URI must fit. Caller-owned
+structs can be manually assembled; serialization validates those fields rather
+than treating them as trusted parsed values. Borrowed input and writable outputs
+must not overlap; the pinned compiler enforces ordinary borrow restrictions.
+
+## Percent and query codecs
+
+- `percent_encode(input, out) -> bool`: RFC unreserved bytes remain literal;
+  others use uppercase `%HH`.
+- `percent_decode(input, out) -> bool`: strict escapes; does not map `+` to space.
+- `parse_query(input) -> QueryParam[>..], Error`: strict form-style decoding;
+  `+` maps to space, `%HH` to bytes. Split on `&`, skip empty pairs, split only the
+  first `=`, preserve duplicates/order, and use empty value for a bare key.
+  Malformed escapes/overflow return an empty set and an error, never a prefix.
+- `format_query(params, out) -> bool`: space maps to `+`; ASCII letters/digits and
+  `*-._` remain literal; other bytes are `%HH`. Every pair is `key=value`.
+
+All input byte slices in these codecs are capped at 65536. Encoders also check
+expanded output plus existing prefix before writing. Decoder failure preserves
+that prefix, including on a late malformed escape. Decoded values need not be
+UTF-8 and may include NUL. This is not WHATWG Unicode replacement behavior.
+`MAX_QUERY_PARAMS=1024` counts nonempty input pairs. Query formatting, append and set
+check the encoded 65536-byte budget; inspection/deletion/sorting check decoded
+storage and parameter caps. Consequently valid byte query data can parse yet fail
+formatting if escaping expands it beyond the budget.
+
+## Query operations
+
+`QueryParam { key: u8[], value: u8[] }` owns decoded bytes.
+
+- `query_has(params, key) -> bool`: first matching key exists.
+- `query_get(params, key, out) -> bool`: append the first matching value; false
+  for absent key or resource failure, preserving the old output on false.
+- `query_append(params&, key, value) -> bool`: append a copied pair.
+- `query_set(params&, key, value) -> bool`: replace the first and remove later
+  duplicates; append if absent.
+- `query_delete(params&, key) -> bool`: remove all matching pairs.
+- `query_sort(params&) -> bool`: stable lexicographic byte ordering. This is not
+  URLSearchParams' UTF-16 code-unit order. It uses quadratic key comparisons with
+  constant-time key lookup, bounded to 1024 pairs and 65536 decoded bytes.
+
+Mutation failures leave the old list unchanged. Inspection returns false for
+invalid caller-constructed storage. Inputs to mutation must not borrow mutable
+list storage across the call; copy a key/value first if needed.
+
+## Component edits and tuple formatting
+
+`with_scheme`, `with_host`, `with_port`, `with_path`, `with_query`, `with_fragment`
+return `(Url, bool)`. They copy a valid original, validate the raw edit and the
+resulting fields/length, and return the original copy on invalid edit. Invalid
+original structs return an empty Url and false. Scheme/host fold ASCII case.
+Host edits take a host only, not userinfo or a port. Paths are already encoded
+components: an authority requires empty or slash-prefixed path; literal `?`/`#`
+are rejected before path reduction. An empty query/fragment edit clears that
+component. Port `-1` clears an explicit port; other accepted ports are 0..65535.
+
+`origin(value, out) -> bool` formats a limited tuple for lowercase `http`, `https`,
+`ws`, `wss`, `ftp` with nonempty authority host, omitting its usual numeric port;
+otherwise it appends `null`. Invalid input/output overflow returns false without
+writing. `origin_string(value) -> bytes` is a convenience returning empty on
+invalid input. These functions do not implement browser host/IDNA normalization,
+blob origins or same-origin authorization. Use an actual browser URL model when
+that security contract is required.

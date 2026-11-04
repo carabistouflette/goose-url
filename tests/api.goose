@@ -17,7 +17,7 @@ fn test_basic_parsing() {
     assert(u.has_fragment);
     assert(u.fragment == "section-1");
 
-    let reconstructed = url::to_string(u);
+    let reconstructed = checked_string(u);
     assert(reconstructed == "https://user:pass@example.com:8443/api/v1/resource?filter=active&sort=desc#section-1");
 }
 
@@ -31,7 +31,7 @@ fn test_ipv6_host() {
     assert(u.port == 8080);
     assert(u.path == "/test");
 
-    let reconstructed = url::to_string(u);
+    let reconstructed = checked_string(u);
     assert(reconstructed == "http://[2001:db8::1]:8080/test");
 }
 
@@ -46,7 +46,7 @@ fn test_file_url() {
     assert(!u.has_query);
     assert(!u.has_fragment);
 
-    let reconstructed = url::to_string(u);
+    let reconstructed = checked_string(u);
     assert(reconstructed == "file:///etc/passwd");
 }
 
@@ -59,7 +59,7 @@ fn test_urn_url() {
     assert(!u.has_query);
     assert(!u.has_fragment);
 
-    let reconstructed = url::to_string(u);
+    let reconstructed = checked_string(u);
     assert(reconstructed == "urn:isbn:0451450523");
 }
 
@@ -74,7 +74,7 @@ fn test_relative_reference() {
     assert(u.has_fragment);
     assert(u.fragment == "frag");
 
-    let reconstructed = url::to_string(u);
+    let reconstructed = checked_string(u);
     assert(reconstructed == "/path/to/page?q=1#frag");
 }
 
@@ -107,7 +107,7 @@ fn test_remove_dot_segments() {
 fn check_resolve(base: url::Url&, rel: const u8[:], expected: const u8[:]) {
     let res, err = url::resolve(base, rel);
     assert(err.kind == url::ErrorKind.None);
-    let s = url::to_string(res);
+    let s = checked_string(res);
     assert(s == expected);
 }
 
@@ -185,7 +185,7 @@ fn test_percent_codec() {
 }
 
 fn test_query_codec() {
-    let params = url::parse_query("key=hello+world&empty=&flag&special=%26%3D%25");
+    let params = checked_query("key=hello+world&empty=&flag&special=%26%3D%25");
     assert(params.len == 4);
     for p, i in params {
         if i == 0 { assert(p.key == "key" && p.value == "hello world"); }
@@ -243,7 +243,7 @@ fn test_url_view() {
 }
 
 fn test_query_manipulation() {
-    var params = url::parse_query("b=2&a=1&c=3&a=duplicate");
+    var params = checked_query("b=2&a=1&c=3&a=duplicate");
     assert(url::query_has(params, "a"));
     assert(!url::query_has(params, "nonexistent"));
 
@@ -315,17 +315,18 @@ fn test_component_mutators() {
     let _, bad_port_ok = url::with_port(u_host, 70000);
     assert(!bad_port_ok);
 
-    let u_path = url::with_path(u_port, "/v2/../v3/endpoint");
+    let u_path, u_path_ok = url::with_path(u_port, "/v2/../v3/endpoint"); assert(u_path_ok);
     assert(u_path.path == "/v3/endpoint"); // dot segment normalized
 
-    let u_query = url::with_query(u_path, "new=true&limit=10");
-    let u_final = url::with_fragment(u_query, "newfrag");
+    let u_query, u_query_ok = url::with_query(u_path, "new=true&limit=10"); assert(u_query_ok);
+    let u_final, u_final_ok = url::with_fragment(u_query, "newfrag"); assert(u_final_ok);
 
-    let s = url::to_string(u_final);
+    let s = checked_string(u_final);
     assert(s == "https://api.newdomain.org:9443/v3/endpoint?new=true&limit=10#newfrag");
 }
 
 fn main() {
+    test_publication_regressions();
     test_basic_parsing();
     test_url_view();
     test_ipv6_host();
@@ -342,4 +343,63 @@ fn main() {
     test_component_mutators();
     test_error_cases();
     print("all goose-url unit tests passed");
+}
+
+fn checked_string(u: url::Url&) -> u8[>..] { let out, error = url::to_string(u); assert(error.kind == url::ErrorKind.None); return out; }
+fn checked_query(input: const u8[:]) -> url::QueryParam[>..] { let params, error = url::parse_query(input); assert(error.kind == url::ErrorKind.None); return params; }
+
+fn reject_uri(input: const u8[:]) {
+    let view, view_error = url::parse_view(input);
+    let owned, error = url::parse(input);
+    assert(view_error.kind != url::ErrorKind.None && error.kind == view_error.kind);
+    assert(owned.scheme.len == 0 && owned.host.len == 0 && owned.path.len == 0);
+    assert(error.offset >= 0 && error.offset <= input.len);
+}
+fn test_publication_regressions() {
+    for input in ["http://good.com@evil.com@host/", "http://user name@host/", "http://exa mple/", "http://h/space here", "http://h/\\x", "http://h/\x00", "http://h/\xff", "http://h/%", "http://h/%2g", "http://h/?x=%z0", "http://h/?x=\t", "http://h/#x#y", ":relative", "1bad:x", "http://h]", "http://[:::]/", "http://[1:2:3]/", "http://[1::2::3]/", "http://[12345::]/", "http://[::ffff:192.00.2.1]/", "http://[v.abc]/", "http://[v1.]/", "http://[fe80::1%25eth0]/", "http://h:65536/"] { reject_uri(input); }
+    for input in ["http://[::]/", "http://[::1]/", "http://[1:2:3:4:5:6:7:8]/", "http://[::ffff:192.0.2.1]/", "http://[1:2:3:4:5:6:192.0.2.1]/", "http://[v1.a:b]/", "http://[VA.!$&'()*+,;=]/", "http://user%40name@exa%6Dple.com/a%2Fb?x=%23#%20"] {
+        let value, error = url::parse(input); assert(error.kind == url::ErrorKind.None);
+        let text = checked_string(value); let reparsed, reparsed_error = url::parse(text);
+        assert(reparsed_error.kind == url::ErrorKind.None && checked_string(reparsed) == text);
+    }
+    for input in ["http://@example.com:/", "//@", "//host:", "?", "#", "?#"] {
+        let value, error = url::parse(input); assert(error.kind == url::ErrorKind.None); assert(checked_string(value) == input);
+    }
+    let original, original_error = url::parse("http://a/"); assert(original_error.kind == url::ErrorKind.None);
+    for path in ["b", "/p?q", "/p#f", "/%ZZ", "/bad%ZZ/../safe", "/bad space/../safe", "/a?x/../safe", "b/../c"] {
+        let value, ok = url::with_path(original, path); assert(!ok && checked_string(value) == "http://a/");
+    }
+    for host in ["other.test/path", "user@other", "h:80", "[:::]", "host\x00"] {
+        let value, ok = url::with_host(original, host); assert(!ok && checked_string(value) == "http://a/");
+    }
+    let query_value, query_ok = url::with_query(original, "x#y"); assert(!query_ok && checked_string(query_value) == "http://a/");
+    let fragment_value, fragment_ok = url::with_fragment(original, "x#y"); assert(!fragment_ok && checked_string(fragment_value) == "http://a/");
+    for input in ["role=admin%ZZ&other=1", "%", "a=%2", "a=b&c=%g0"] {
+        let params, error = url::parse_query(input); assert(error.kind == url::ErrorKind.InvalidPercentEncoding && params.len == 0);
+    }
+    var query: u8[>..] = [];
+    for i in url::MAX_QUERY_PARAMS { if i > 0 { query.push('&'); } query.append("a=1"); }
+    var params, query_error = url::parse_query(query); assert(query_error.kind == url::ErrorKind.None && params.len == url::MAX_QUERY_PARAMS);
+    assert(!url::query_append(params, "extra", "x") && params.len == url::MAX_QUERY_PARAMS);
+    assert(!url::query_set(params, "extra", "x") && params.len == url::MAX_QUERY_PARAMS);
+    query.append("&extra=x");
+    let too_many, limit_error = url::parse_query(query); assert(limit_error.kind == url::ErrorKind.TooLong && too_many.len == 0);
+    assert(url::query_set(params, "a", "updated") && params.len == 1);
+    var binary: u8[>..] = str("keep"); assert(!url::percent_decode("ok%Q0", binary) && binary == "keep");
+    var normalized = str("prefix"); assert(url::remove_dot_segments("/a/../b", normalized) && normalized == "prefix/b");
+    var raw: u8[>..] = []; raw.resize(21846, '!'); assert(!url::percent_encode(raw, binary) && binary == "keep");
+    binary.clear(); assert(url::percent_encode("\x00\xff", binary) && binary == "%00%FF");
+    var decoded: u8[>..] = []; assert(url::percent_decode(binary, decoded) && decoded == "\x00\xff");
+    var ordered = checked_query("b=1&a=x&a=y"); assert(url::query_sort(ordered));
+    var formatted: u8[>..]              = []; assert(url::format_query(ordered, formatted) && formatted == "a=x&a=y&b=1");
+    var bytes:     url::QueryParam[>..] = [];
+    assert(url::query_append(bytes, "😀", "astral") && url::query_append(bytes, "\xee\x80\x80", "bmp") && url::query_sort(bytes));
+    for item, i in bytes { if i == 0 { assert(item.value == "bmp"); } }
+    var maximum = str("http://a/"); maximum.resize(url::MAX_URL_BYTES - 1, 'x'); maximum.push('/');
+    let large, large_error = url::parse(maximum); assert(large_error.kind == url::ErrorKind.None && checked_string(large).len == url::MAX_URL_BYTES);
+    var prefix = str("keep"); assert(url::format(large, prefix).kind == url::ErrorKind.TooLong && prefix == "keep");
+    let oversized, oversized_error = url::resolve(large, "child"); assert(oversized_error.kind == url::ErrorKind.TooLong && oversized.path.len == 0);
+    let shortened, shortened_error = url::resolve(large, "../../g"); assert(shortened_error.kind == url::ErrorKind.None && checked_string(shortened) == "http://a/g");
+    let large_modified, large_ok = url::with_query(large, "x"); assert(!large_ok && checked_string(large_modified).len == url::MAX_URL_BYTES);
+    maximum.push('x'); reject_uri(maximum);
 }

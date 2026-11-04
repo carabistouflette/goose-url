@@ -8,6 +8,7 @@ fn parse_iterations(s: const u8[:]) -> i64 {
     var n: i64 = 0;
     for c in s {
         if c < '0' || c > '9' { return -1; }
+        if n > 100000 { return -1; }
         n = n * 10 + (c - '0');
     }
     n
@@ -19,11 +20,12 @@ fn bench_parse(iterations: i64) {
     var checksum: i64 = 0;
     for _ in iterations {
         let u, err = url::parse(target);
-        if err.kind == url::ErrorKind.None {
-            checksum += u.port + u.path.len;
-        }
+        assert(err.kind == url::ErrorKind.None && u.port == 8443 && u.path == "/api/v1/resource/items");
+        checksum += u.port + u.path.len;
     }
+    assert(checksum > 0);
     let elapsed = clock() - start;
+    assert(elapsed > 0.0);
     let ops_per_sec = iterations / elapsed;
     let ns_per_op = (elapsed / iterations) * 1000000000.0;
 
@@ -36,11 +38,12 @@ fn bench_parse_view(iterations: i64) {
     var checksum: i64 = 0;
     for _ in iterations {
         let v, err = url::parse_view(target);
-        if err.kind == url::ErrorKind.None {
-            checksum += v.port + v.path.len;
-        }
+        assert(err.kind == url::ErrorKind.None && v.port == 8443 && v.path == "/api/v1/resource/items");
+        checksum += v.port + v.path.len;
     }
+    assert(checksum > 0);
     let elapsed = clock() - start;
+    assert(elapsed > 0.0);
     let ops_per_sec = iterations / elapsed;
     let ns_per_op = (elapsed / iterations) * 1000000000.0;
 
@@ -57,11 +60,12 @@ fn bench_resolve(iterations: i64) {
     var checksum: i64 = 0;
     for _ in iterations {
         let res, r_err = url::resolve(base, ref_str);
-        if r_err.kind == url::ErrorKind.None {
-            checksum += res.path.len;
-        }
+        assert(r_err.kind == url::ErrorKind.None && res.path == "/g");
+        checksum += res.path.len;
     }
+    assert(checksum > 0);
     let elapsed = clock() - start;
+    assert(elapsed > 0.0);
     let ops_per_sec = iterations / elapsed;
     let ns_per_op = (elapsed / iterations) * 1000000000.0;
 
@@ -76,10 +80,12 @@ fn bench_dot_segments(iterations: i64) {
     var checksum: i64 = 0;
     for _ in iterations {
         out.clear();
-        url::remove_dot_segments(path, out);
+        assert(url::remove_dot_segments(path, out) && out == "/a/h/i");
         checksum += out.len;
     }
+    assert(checksum > 0);
     let elapsed = clock() - start;
+    assert(elapsed > 0.0);
     let ops_per_sec = iterations / elapsed;
     let ns_per_op = (elapsed / iterations) * 1000000000.0;
 
@@ -92,10 +98,12 @@ fn bench_query_parse(iterations: i64) {
     let start = clock();
     var checksum: i64 = 0;
     for _ in iterations {
-        let params = url::parse_query(q);
-        checksum += params.len;
+        let params = checked_query(q);
+        assert(params.len == 6); checksum += params.len;
     }
+    assert(checksum > 0);
     let elapsed = clock() - start;
+    assert(elapsed > 0.0);
     let ops_per_sec = iterations / elapsed;
     let ns_per_op = (elapsed / iterations) * 1000000000.0;
 
@@ -110,10 +118,12 @@ fn bench_origin(iterations: i64) {
     var checksum: i64 = 0;
     for _ in iterations {
         out.clear();
-        url::origin(u, out);
+        assert(url::origin(u, out) && out == "https://example.com:8443");
         checksum += out.len;
     }
+    assert(checksum > 0);
     let elapsed = clock() - start;
+    assert(elapsed > 0.0);
     let ops_per_sec = iterations / elapsed;
     let ns_per_op = (elapsed / iterations) * 1000000000.0;
 
@@ -122,19 +132,21 @@ fn bench_origin(iterations: i64) {
 
 fn bench_query_sort(iterations: i64) {
     let q = "z=10&a=1&m=5&b=2&k=3&f=6";
-    let base_params = url::parse_query(q);
+    let base_params = checked_query(q);
 
     let start = clock();
     var checksum: i64 = 0;
     for _ in iterations {
         var params: url::QueryParam[>..] = [];
         for p in base_params {
-            url::query_append(params, p.key, p.value);
+            assert(url::query_append(params, p.key, p.value));
         }
-        url::query_sort(params);
-        checksum += params.len;
+        assert(url::query_sort(params));
+        assert(params.len == 6); checksum += params.len;
     }
+    assert(checksum > 0);
     let elapsed = clock() - start;
+    assert(elapsed > 0.0);
     let ops_per_sec = iterations / elapsed;
     let ns_per_op = (elapsed / iterations) * 1000000000.0;
 
@@ -146,7 +158,7 @@ fn main() {
     var iterations: i64 = 100000;
     if argv.len > 1 {
         let parsed = parse_iterations(argv[1]);
-        if parsed > 0 { iterations = parsed; }
+        assert(parsed > 0 && parsed <= 1000000); iterations = parsed;
     }
 
     print("=== goose-url microbenchmark (iterations=", iterations, ") ===");
@@ -158,3 +170,6 @@ fn main() {
     bench_origin(iterations);
     bench_query_sort(iterations);
 }
+
+fn checked_string(u: url::Url&) -> u8[>..] { let out, error = url::to_string(u); assert(error.kind == url::ErrorKind.None); return out; }
+fn checked_query(input: const u8[:]) -> url::QueryParam[>..] { let params, error = url::parse_query(input); assert(error.kind == url::ErrorKind.None); return params; }

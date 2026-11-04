@@ -79,6 +79,14 @@ fn main() {
     for p in params {
         print("Param: ", p.key, " = ", p.value);
     }
+
+    // 5. WHATWG Compatibility: Origin & URLSearchParams
+    print("Origin: ", url::origin_string(u));
+    // Output: https://example.com:8443
+
+    var qparams = url::parse_query("b=2&a=1&a=dup");
+    url::query_set(qparams, "a", "10"); // updates first, drops duplicates
+    url::query_sort(qparams);           // stable sort by key: a=10&b=2
 }
 ```
 

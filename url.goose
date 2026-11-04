@@ -255,6 +255,21 @@ fn parse_view(raw: const u8[:]) -> UrlView, Error {
             if close_bracket < 0 {
                 return UrlView { raw: raw }, Error { kind: ErrorKind.InvalidHost, offset: auth_start };
             }
+            let inner = host_port[1..close_bracket];
+            if inner.len == 0 {
+                return UrlView { raw: raw }, Error { kind: ErrorKind.InvalidHost, offset: auth_start };
+            }
+            var has_colon = false;
+            for c in inner {
+                if c == ':' {
+                    has_colon = true;
+                } else if !is_hex_digit(c) && c != '.' {
+                    return UrlView { raw: raw }, Error { kind: ErrorKind.InvalidHost, offset: auth_start };
+                }
+            }
+            if !has_colon {
+                return UrlView { raw: raw }, Error { kind: ErrorKind.InvalidHost, offset: auth_start };
+            }
             hp_host = host_port[..close_bracket + 1];
             if close_bracket + 1 < host_port.len {
                 if host_port[close_bracket + 1] != ':' {

@@ -215,6 +215,15 @@ fn test_error_cases() {
 
     let _, err_unclosed_ipv6 = url::parse("http://[::1/path");
     assert(err_unclosed_ipv6.kind == url::ErrorKind.InvalidHost);
+
+    let _, err_empty_ipv6 = url::parse("http://[]/");
+    assert(err_empty_ipv6.kind == url::ErrorKind.InvalidHost);
+
+    let _, err_bad_ipv6_char = url::parse("http://[xyz]/");
+    assert(err_bad_ipv6_char.kind == url::ErrorKind.InvalidHost);
+
+    let _, err_bad_ipv6_no_colon = url::parse("http://[1234]/");
+    assert(err_bad_ipv6_no_colon.kind == url::ErrorKind.InvalidHost);
 }
 
 fn test_url_view() {

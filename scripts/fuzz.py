@@ -137,10 +137,67 @@ def run_random_fuzzing(count=10000):
     print(f"[+] Completed {count} fuzz iterations with 0 crashes!")
 
 
+def run_differential_query_suite(iterations=1000):
+    print(f"[*] Running {iterations} differential query codec tests against urllib.parse...")
+    proc = subprocess.Popen(
+        [FUZZ_BIN, "--stdin"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        cwd=REPO_ROOT
+    )
+
+    test_queries = [
+        "key=value&foo=bar&flag=",
+        "a=1&b=2&c=3",
+        "search=goose+language&sort=date",
+        "empty=&blank",
+        "special=%26%3D%25%2B&hello=world%21",
+        "multi=first&multi=second",
+    ]
+
+    charset = string.ascii_letters + string.digits + "-_.~ +="
+
+    for i in range(iterations):
+        if i < len(test_queries):
+            query = test_queries[i]
+        else:
+            num_pairs = random.randint(1, 6)
+            pairs = []
+            for _ in range(num_pairs):
+                k = "".join(random.choice(string.ascii_letters) for _ in range(random.randint(1, 8)))
+                v = "".join(random.choice(charset) for _ in range(random.randint(0, 10)))
+                pairs.append((k, v))
+            query = urllib.parse.urlencode(pairs)
+
+        clean_query = query.replace("\n", "").replace("\r", "")
+        cmd = f"Q {clean_query}\n"
+        proc.stdin.write(cmd)
+        proc.stdin.flush()
+        out = proc.stdout.readline().strip()
+        if not out.startswith("OK "):
+            print(f"[!] Query harness failed on {clean_query!r}: {out}")
+            sys.exit(1)
+
+        goose_formatted = out[3:].strip()
+        py_pairs_orig = urllib.parse.parse_qsl(clean_query, keep_blank_values=True)
+        py_pairs_goose = urllib.parse.parse_qsl(goose_formatted, keep_blank_values=True)
+
+        if py_pairs_orig != py_pairs_goose:
+            print(f"[!] Discrepancy in query codec: orig={py_pairs_orig} goose_reconstructed={py_pairs_goose}")
+            sys.exit(1)
+
+    proc.stdin.close()
+    proc.wait()
+    print(f"[+] All {iterations} differential query codec tests matched urllib.parse exactly!")
+
+
 def main():
     compile_harness()
     test_builtin_properties()
     run_differential_suite()
+    run_differential_query_suite(1000)
     run_random_fuzzing(5000)
     print("\n[SUCCESS] All fuzzing and property tests passed successfully.")
 

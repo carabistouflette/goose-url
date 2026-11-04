@@ -736,3 +736,333 @@ fn format_query(params: QueryParam[:], out: u8[>..]&) {
         encode_query_component(p.value, out);
     }
 }
+
+// -----------------------------------------------------------------------------
+// WHATWG URL Compatibility Surface
+// -----------------------------------------------------------------------------
+
+// URLSearchParams: Inspection and Mutation (WHATWG §6)
+
+fn query_has(params: QueryParam[:], key: const u8[:]) -> bool {
+    for p in params {
+        if p.key == key { return true; }
+    }
+    return false;
+}
+
+fn query_get(params: QueryParam[:], key: const u8[:], out: u8[>..]&) -> bool {
+    for p in params {
+        if p.key == key {
+            out.append(p.value);
+            return true;
+        }
+    }
+    return false;
+}
+
+fn query_append(params: QueryParam[>..]&, key: const u8[:], value: const u8[:]) {
+    var k_buf: u8[>..] = [];
+    k_buf.append(key);
+    var v_buf: u8[>..] = [];
+    v_buf.append(value);
+    params.push(QueryParam { key: copy(k_buf), value: copy(v_buf) });
+}
+
+fn query_set(params: QueryParam[>..]&, key: const u8[:], value: const u8[:]) {
+    var first_idx = -1;
+    var filtered: QueryParam[>..] = [];
+    for p in params {
+        if p.key == key {
+            if first_idx < 0 {
+                first_idx = filtered.len;
+                var k_buf: u8[>..] = [];
+                k_buf.append(key);
+                var v_buf: u8[>..] = [];
+                v_buf.append(value);
+                filtered.push(QueryParam { key: copy(k_buf), value: copy(v_buf) });
+            }
+        } else {
+            var k_buf: u8[>..] = [];
+            k_buf.append(p.key);
+            var v_buf: u8[>..] = [];
+            v_buf.append(p.value);
+            filtered.push(QueryParam { key: copy(k_buf), value: copy(v_buf) });
+        }
+    }
+    if first_idx < 0 {
+        var k_buf: u8[>..] = [];
+        k_buf.append(key);
+        var v_buf: u8[>..] = [];
+        v_buf.append(value);
+        filtered.push(QueryParam { key: copy(k_buf), value: copy(v_buf) });
+    }
+    params.clear();
+    for p in filtered {
+        var k_buf: u8[>..] = [];
+        k_buf.append(p.key);
+        var v_buf: u8[>..] = [];
+        v_buf.append(p.value);
+        params.push(QueryParam { key: copy(k_buf), value: copy(v_buf) });
+    }
+}
+
+fn query_delete(params: QueryParam[>..]&, key: const u8[:]) {
+    var filtered: QueryParam[>..] = [];
+    for p in params {
+        if p.key != key {
+            var k_buf: u8[>..] = [];
+            k_buf.append(p.key);
+            var v_buf: u8[>..] = [];
+            v_buf.append(p.value);
+            filtered.push(QueryParam { key: copy(k_buf), value: copy(v_buf) });
+        }
+    }
+    params.clear();
+    for p in filtered {
+        var k_buf: u8[>..] = [];
+        k_buf.append(p.key);
+        var v_buf: u8[>..] = [];
+        v_buf.append(p.value);
+        params.push(QueryParam { key: copy(k_buf), value: copy(v_buf) });
+    }
+}
+
+fn get_nth_key(params: QueryParam[:], target_idx: i64) -> const u8[:] {
+    for p, i in params {
+        if i == target_idx { return p.key; }
+    }
+    return "";
+}
+
+fn bytes_compare(a: const u8[:], b: const u8[:]) -> i32 {
+    let min_len = if a.len < b.len { a.len } else { b.len };
+    for i in min_len {
+        if a[i] < b[i] { return -1; }
+        if a[i] > b[i] { return 1; }
+    }
+    if a.len < b.len { return -1; }
+    if a.len > b.len { return 1; }
+    return 0;
+}
+
+fn query_sort(params: QueryParam[>..]&) {
+    if params.len <= 1 { return; }
+    var order: i64[>..] = [];
+    for i in params.len { order.push(i); }
+
+    // Stable insertion sort on key bytes per WHATWG URL §6.3
+    var i = 1;
+    while i < order.len {
+        let current_idx = order[i];
+        let current_key = get_nth_key(params, current_idx);
+        var j = i;
+        while j > 0 {
+            let prev_idx = order[j - 1];
+            let prev_key = get_nth_key(params, prev_idx);
+            if bytes_compare(prev_key, current_key) > 0 {
+                order[j] = prev_idx;
+                j--;
+            } else {
+                break;
+            }
+        }
+        order[j] = current_idx;
+        i++;
+    }
+
+    var sorted: QueryParam[>..] = [];
+    for ord in order {
+        for p, idx in params {
+            if idx == ord {
+                var k_buf: u8[>..] = [];
+                k_buf.append(p.key);
+                var v_buf: u8[>..] = [];
+                v_buf.append(p.value);
+                sorted.push(QueryParam { key: copy(k_buf), value: copy(v_buf) });
+                break;
+            }
+        }
+    }
+
+    params.clear();
+    for p in sorted {
+        var k_buf: u8[>..] = [];
+        k_buf.append(p.key);
+        var v_buf: u8[>..] = [];
+        v_buf.append(p.value);
+        params.push(QueryParam { key: copy(k_buf), value: copy(v_buf) });
+    }
+}
+
+// Origin Extraction (WHATWG URL §4.2)
+
+fn default_port_for_scheme(scheme: const u8[:]) -> i32 {
+    if scheme == "http" || scheme == "ws" { return 80; }
+    if scheme == "https" || scheme == "wss" { return 443; }
+    if scheme == "ftp" { return 21; }
+    return -1;
+}
+
+fn is_special_scheme(scheme: const u8[:]) -> bool {
+    scheme == "http" || scheme == "https" || scheme == "ws" || scheme == "wss" || scheme == "ftp"
+}
+
+fn origin(u: Url&, out: u8[>..]&) {
+    if !is_special_scheme(u.scheme) || !u.has_authority {
+        out.append("null");
+        return;
+    }
+    out.append(u.scheme);
+    out.append("://");
+    out.append(u.host);
+    let def_port = default_port_for_scheme(u.scheme);
+    if u.port >= 0 && u.port != def_port {
+        out.push(':');
+        out.append(str(u.port));
+    }
+}
+
+fn origin_string(u: Url&) -> u8[>..] {
+    var out: u8[>..] = [];
+    origin(u, out);
+    return out;
+}
+
+// Cloning and Functional Modifiers (Functional WHATWG Component Mutation)
+
+fn clone_url(u: Url&) -> Url {
+    return Url {
+        scheme:        copy(u.scheme),
+        has_authority: u.has_authority,
+        userinfo:      copy(u.userinfo),
+        host:          copy(u.host),
+        port:          u.port,
+        path:          copy(u.path),
+        has_query:     u.has_query,
+        query:         copy(u.query),
+        has_fragment:  u.has_fragment,
+        fragment:      copy(u.fragment),
+    };
+}
+
+fn with_scheme(u: Url&, new_scheme: const u8[:]) -> Url, bool {
+    if new_scheme.len == 0 || !is_alpha(new_scheme[0]) { return clone_url(u), false; }
+    for i in 1..new_scheme.len {
+        if !is_scheme_char(new_scheme[i]) { return clone_url(u), false; }
+    }
+    var buf: u8[>..] = [];
+    for c in new_scheme { buf.push(to_lower_ascii(c)); }
+    return Url {
+        scheme:        copy(buf),
+        has_authority: u.has_authority,
+        userinfo:      copy(u.userinfo),
+        host:          copy(u.host),
+        port:          u.port,
+        path:          copy(u.path),
+        has_query:     u.has_query,
+        query:         copy(u.query),
+        has_fragment:  u.has_fragment,
+        fragment:      copy(u.fragment),
+    }, true;
+}
+
+fn with_host(u: Url&, new_host: const u8[:]) -> Url, bool {
+    if new_host.len > 0 && new_host[0] == '[' {
+        var close_b = -1;
+        for i in 1..new_host.len {
+            if new_host[i] == ']' { close_b = i; break; }
+        }
+        if close_b != new_host.len - 1 { return clone_url(u), false; }
+        let inner = new_host[1..close_b];
+        if inner.len == 0 { return clone_url(u), false; }
+        var has_col = false;
+        for c in inner {
+            if c == ':' { has_col = true; }
+            else if !is_hex_digit(c) && c != '.' { return clone_url(u), false; }
+        }
+        if !has_col { return clone_url(u), false; }
+    }
+    var buf: u8[>..] = [];
+    for c in new_host { buf.push(to_lower_ascii(c)); }
+    return Url {
+        scheme:        copy(u.scheme),
+        has_authority: true,
+        userinfo:      copy(u.userinfo),
+        host:          copy(buf),
+        port:          u.port,
+        path:          copy(u.path),
+        has_query:     u.has_query,
+        query:         copy(u.query),
+        has_fragment:  u.has_fragment,
+        fragment:      copy(u.fragment),
+    }, true;
+}
+
+fn with_port(u: Url&, new_port: i32) -> Url, bool {
+    if new_port < -1 || new_port > 65535 { return clone_url(u), false; }
+    return Url {
+        scheme:        copy(u.scheme),
+        has_authority: u.has_authority,
+        userinfo:      copy(u.userinfo),
+        host:          copy(u.host),
+        port:          new_port,
+        path:          copy(u.path),
+        has_query:     u.has_query,
+        query:         copy(u.query),
+        has_fragment:  u.has_fragment,
+        fragment:      copy(u.fragment),
+    }, true;
+}
+
+fn with_path(u: Url&, new_path: const u8[:]) -> Url {
+    var buf: u8[>..] = [];
+    remove_dot_segments(new_path, buf);
+    return Url {
+        scheme:        copy(u.scheme),
+        has_authority: u.has_authority,
+        userinfo:      copy(u.userinfo),
+        host:          copy(u.host),
+        port:          u.port,
+        path:          copy(buf),
+        has_query:     u.has_query,
+        query:         copy(u.query),
+        has_fragment:  u.has_fragment,
+        fragment:      copy(u.fragment),
+    };
+}
+
+fn with_query(u: Url&, new_query: const u8[:]) -> Url {
+    var buf: u8[>..] = [];
+    let has_q = new_query.len > 0;
+    if has_q { buf.append(new_query); }
+    return Url {
+        scheme:        copy(u.scheme),
+        has_authority: u.has_authority,
+        userinfo:      copy(u.userinfo),
+        host:          copy(u.host),
+        port:          u.port,
+        path:          copy(u.path),
+        has_query:     has_q,
+        query:         copy(buf),
+        has_fragment:  u.has_fragment,
+        fragment:      copy(u.fragment),
+    };
+}
+
+fn with_fragment(u: Url&, new_frag: const u8[:]) -> Url {
+    var buf: u8[>..] = [];
+    let has_f = new_frag.len > 0;
+    if has_f { buf.append(new_frag); }
+    return Url {
+        scheme:        copy(u.scheme),
+        has_authority: u.has_authority,
+        userinfo:      copy(u.userinfo),
+        host:          copy(u.host),
+        port:          u.port,
+        path:          copy(u.path),
+        has_query:     u.has_query,
+        query:         copy(u.query),
+        has_fragment:  has_f,
+        fragment:      copy(buf),
+    };
+}

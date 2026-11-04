@@ -242,6 +242,89 @@ fn test_url_view() {
     assert(v.fragment == "sec-1");
 }
 
+fn test_query_manipulation() {
+    var params = url::parse_query("b=2&a=1&c=3&a=duplicate");
+    assert(url::query_has(params, "a"));
+    assert(!url::query_has(params, "nonexistent"));
+
+    var val: u8[>..] = [];
+    assert(url::query_get(params, "b", val));
+    assert(val == "2");
+
+    // set_param: updates first, drops subsequent duplicate 'a'
+    url::query_set(params, "a", "10");
+    val.clear();
+    assert(url::query_get(params, "a", val));
+    assert(val == "10");
+    assert(params.len == 3); // b=2, a=10, c=3
+
+    // append_param
+    url::query_append(params, "d", "4");
+    assert(params.len == 4);
+
+    // delete_param
+    url::query_delete(params, "c");
+    assert(!url::query_has(params, "c"));
+    assert(params.len == 3); // b=2, a=10, d=4
+
+    // sort_params: should sort keys lexicographically -> a, b, d
+    url::query_sort(params);
+    var formatted: u8[>..] = [];
+    url::format_query(params, formatted);
+    assert(formatted == "a=10&b=2&d=4");
+}
+
+fn test_whatwg_origin() {
+    let u1, _ = url::parse("http://example.com/some/path");
+    assert(url::origin_string(u1) == "http://example.com");
+
+    let u2, _ = url::parse("http://example.com:80/some/path");
+    assert(url::origin_string(u2) == "http://example.com"); // default 80 omitted
+
+    let u3, _ = url::parse("http://example.com:8080/some/path");
+    assert(url::origin_string(u3) == "http://example.com:8080");
+
+    let u4, _ = url::parse("https://example.com:443/secure");
+    assert(url::origin_string(u4) == "https://example.com"); // default 443 omitted
+
+    let u5, _ = url::parse("https://example.com:8443/secure");
+    assert(url::origin_string(u5) == "https://example.com:8443");
+
+    let u6, _ = url::parse("file:///etc/hosts");
+    assert(url::origin_string(u6) == "null"); // opaque origin
+
+    let u7, _ = url::parse("urn:isbn:0451450523");
+    assert(url::origin_string(u7) == "null"); // opaque origin
+}
+
+fn test_component_mutators() {
+    let u, _ = url::parse("http://example.com:8080/v1/old?foo=bar#oldfrag");
+
+    let u_scheme, ok1 = url::with_scheme(u, "https");
+    assert(ok1);
+    let _, bad_scheme_ok = url::with_scheme(u, "1bad");
+    assert(!bad_scheme_ok);
+
+    let u_host, ok2 = url::with_host(u_scheme, "api.newdomain.org");
+    assert(ok2);
+    let _, bad_host_ok = url::with_host(u_scheme, "[invalid_ipv6]");
+    assert(!bad_host_ok);
+
+    let u_port, ok3 = url::with_port(u_host, 9443);
+    assert(ok3);
+    let _, bad_port_ok = url::with_port(u_host, 70000);
+    assert(!bad_port_ok);
+
+    let u_path = url::with_path(u_port, "/v2/../v3/endpoint");
+    assert(u_path.path == "/v3/endpoint"); // dot segment normalized
+
+    let u_query = url::with_query(u_path, "new=true&limit=10");
+    let u_final = url::with_fragment(u_query, "newfrag");
+
+    let s = url::to_string(u_final);
+    assert(s == "https://api.newdomain.org:9443/v3/endpoint?new=true&limit=10#newfrag");
+}
+
 fn main() {
     test_basic_parsing();
     test_url_view();
@@ -254,6 +337,9 @@ fn main() {
     test_rfc_3986_abnormal();
     test_percent_codec();
     test_query_codec();
+    test_query_manipulation();
+    test_whatwg_origin();
+    test_component_mutators();
     test_error_cases();
     print("all goose-url unit tests passed");
 }

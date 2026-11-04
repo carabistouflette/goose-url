@@ -176,6 +176,110 @@ fn test_resolution_invariants(p: Prng&, iterations: i64) {
     }
 }
 
+fn test_modifier_invariants(p: Prng&, iterations: i64) {
+    let base_url_str = "http://example.com:8080/path/to/resource?foo=bar#section";
+    let u, err = url::parse(base_url_str);
+    assert(err.kind == url::ErrorKind.None);
+
+    for _ in iterations {
+        // with_scheme
+        let u_scheme, s_ok = url::with_scheme(u, "https");
+        assert(s_ok);
+        assert(u_scheme.scheme == "https");
+        assert(u_scheme.host == u.host);
+        assert(u_scheme.port == u.port);
+        assert(u_scheme.path == u.path);
+        assert(u_scheme.query == u.query);
+        assert(u_scheme.fragment == u.fragment);
+
+        // with_host
+        let u_host, h_ok = url::with_host(u, "newhost.org");
+        assert(h_ok);
+        assert(u_host.host == "newhost.org");
+        assert(u_host.scheme == u.scheme);
+        assert(u_host.port == u.port);
+        assert(u_host.path == u.path);
+        assert(u_host.query == u.query);
+        assert(u_host.fragment == u.fragment);
+
+        // with_port
+        let u_port, p_ok = url::with_port(u, 9000);
+        assert(p_ok);
+        assert(u_port.port == 9000);
+        assert(u_port.scheme == u.scheme);
+        assert(u_port.host == u.host);
+        assert(u_port.path == u.path);
+        assert(u_port.query == u.query);
+        assert(u_port.fragment == u.fragment);
+
+        // with_path
+        let u_path = url::with_path(u, "/a/b/../c");
+        assert(u_path.path == "/a/c");
+        assert(u_path.scheme == u.scheme);
+        assert(u_path.host == u.host);
+        assert(u_path.port == u.port);
+        assert(u_path.query == u.query);
+        assert(u_path.fragment == u.fragment);
+
+        // with_query
+        let u_query = url::with_query(u, "new=true");
+        assert(u_query.query == "new=true");
+        assert(u_query.has_query);
+        assert(u_query.scheme == u.scheme);
+        assert(u_query.host == u.host);
+        assert(u_query.port == u.port);
+        assert(u_query.path == u.path);
+        assert(u_query.fragment == u.fragment);
+
+        // with_fragment
+        let u_frag = url::with_fragment(u, "newtop");
+        assert(u_frag.fragment == "newtop");
+        assert(u_frag.has_fragment);
+        assert(u_frag.scheme == u.scheme);
+        assert(u_frag.host == u.host);
+        assert(u_frag.port == u.port);
+        assert(u_frag.path == u.path);
+        assert(u_frag.query == u.query);
+    }
+}
+
+fn test_query_param_invariants(p: Prng&, iterations: i64) {
+    let charset: const u8[:] = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+    for _ in iterations {
+        var params: url::QueryParam[>..] = [];
+        let num_pairs = p.next_int(5) + 1;
+
+        for _ in num_pairs {
+            var k: u8[>..] = [];
+            p.random_string(charset, 5, k);
+            if k.len == 0 { k.push('k'); }
+
+            var v: u8[>..] = [];
+            p.random_string(charset, 5, v);
+
+            url::query_set(params, k, v);
+            assert(url::query_has(params, k));
+
+            var retrieved: u8[>..] = [];
+            assert(url::query_get(params, k, retrieved));
+            assert(retrieved == v);
+        }
+
+        url::query_sort(params);
+        if params.len > 1 {
+            var prev_key: u8[>..] = [];
+            for param, idx in params {
+                if idx > 0 {
+                    assert(url::bytes_compare(prev_key, param.key) <= 0);
+                }
+                prev_key.clear();
+                prev_key.append(param.key);
+            }
+        }
+    }
+}
+
 fn run_stdin_mode() {
     var line: u8[>..] = [];
     while read_line(line) {
@@ -197,7 +301,6 @@ fn run_stdin_mode() {
             }
         } else if line[0] == 'R' && line.len >= 2 && line[1] == ' ' {
             let rest = line[2..];
-            // Split by space: base reference
             var sep = -1;
             for c, idx in rest {
                 if c == ' ' {
@@ -225,6 +328,14 @@ fn run_stdin_mode() {
                     }
                 }
             }
+        } else if line[0] == 'Q' && line.len >= 2 && line[1] == ' ' {
+            let target = line[2..];
+            let params = url::parse_query(target);
+            var formatted: u8[>..] = [];
+            url::format_query(params, formatted);
+            write_stdout("OK ");
+            write_stdout(formatted);
+            write_stdout("\n");
         } else {
             write_stdout("ERR UNKNOWN_CMD\n");
         }
@@ -244,6 +355,8 @@ fn main() {
     test_roundtrip_properties(p, 1000);
     test_random_junk_robustness(p, 2000);
     test_resolution_invariants(p, 500);
+    test_modifier_invariants(p, 500);
+    test_query_param_invariants(p, 500);
 
     write_stdout("all goose-url property tests passed\n");
 }

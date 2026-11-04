@@ -102,6 +102,45 @@ fn bench_query_parse(iterations: i64) {
     print("bench_query_parse:", iterations, " ops in ", elapsed, " s (", ops_per_sec as i64, " ops/sec, ", ns_per_op as i64, " ns/op, checksum=", checksum, ")");
 }
 
+fn bench_origin(iterations: i64) {
+    let u, _ = url::parse("https://user:pass@example.com:8443/api/v1/items?k=v#sec");
+    var out: u8[>..] = [];
+
+    let start = clock();
+    var checksum: i64 = 0;
+    for _ in iterations {
+        out.clear();
+        url::origin(u, out);
+        checksum += out.len;
+    }
+    let elapsed = clock() - start;
+    let ops_per_sec = iterations / elapsed;
+    let ns_per_op = (elapsed / iterations) * 1000000000.0;
+
+    print("bench_origin:     ", iterations, " ops in ", elapsed, " s (", ops_per_sec as i64, " ops/sec, ", ns_per_op as i64, " ns/op, checksum=", checksum, ")");
+}
+
+fn bench_query_sort(iterations: i64) {
+    let q = "z=10&a=1&m=5&b=2&k=3&f=6";
+    let base_params = url::parse_query(q);
+
+    let start = clock();
+    var checksum: i64 = 0;
+    for _ in iterations {
+        var params: url::QueryParam[>..] = [];
+        for p in base_params {
+            url::query_append(params, p.key, p.value);
+        }
+        url::query_sort(params);
+        checksum += params.len;
+    }
+    let elapsed = clock() - start;
+    let ops_per_sec = iterations / elapsed;
+    let ns_per_op = (elapsed / iterations) * 1000000000.0;
+
+    print("bench_query_sort: ", iterations, " ops in ", elapsed, " s (", ops_per_sec as i64, " ops/sec, ", ns_per_op as i64, " ns/op, checksum=", checksum, ")");
+}
+
 fn main() {
     let argv = args();
     var iterations: i64 = 100000;
@@ -116,4 +155,6 @@ fn main() {
     bench_resolve(iterations);
     bench_dot_segments(iterations);
     bench_query_parse(iterations);
+    bench_origin(iterations);
+    bench_query_sort(iterations);
 }

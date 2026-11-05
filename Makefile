@@ -23,6 +23,8 @@ check:
 	"$(GOOSE)" check tests/fuzz.goose
 	"$(GOOSE)" check bench/bench.goose
 	"$(GOOSE)" check examples/resolve.goose
+	"$(GOOSE)" check examples/artifact/probe.goose
+	"$(GOOSE)" check examples/artifact/bench.goose
 	python3 -m py_compile scripts/*.py
 
 test:

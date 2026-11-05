@@ -9,6 +9,10 @@ in the compiler dependency cache, not this repository. Its native dependencies
 include libsodium (ISC), libcurl (curl license) and simdjson (Apache-2.0/MIT);
 retain the relevant upstream notices when redistributing binaries. Fixture tests
 also use installed Python cryptography (Apache-2.0/BSD) and its dependencies.
+The test-only CA wrapper in `tests/artifact/transport.c` is adapted from
+`goose-artifact` revision `c2d190b613c541a5dba839ce380de8b111c9ab0c`,
+`tests/transport.c`, under Apache-2.0. The repository's Apache-2.0 LICENSE applies;
+this wrapper is never linked into the production example.
 
 The compiler/runtime is provided by [Goose](https://github.com/aardappel/goose),
 under Apache-2.0, at the exact revision in [GOOSE_REVISION](GOOSE_REVISION).

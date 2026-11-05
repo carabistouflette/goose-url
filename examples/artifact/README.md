@@ -97,3 +97,6 @@ Measurements compare syntax parsing against syntax plus this origin policy on
 the same four inputs. They do not measure HTTP throughput, establish a universal
 ranking or claim host isolation. Retain raw samples and provenance when sharing
 results.
+
+See the [validation record](../../docs/ARTIFACT_EXAMPLE.md) for tested sources,
+review findings, retained raw samples and their scope.

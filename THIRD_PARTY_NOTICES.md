@@ -1,7 +1,14 @@
 # Third-party notices
 
 goose-url's implementation is Apache-2.0; see [LICENSE](LICENSE). No third-party
-implementation source is vendored.
+implementation source is vendored in the core library.
+
+The optional artifact example downloads exact Apache-2.0 Goose library revisions
+listed in [its README](examples/artifact/README.md). Their sources/licenses remain
+in the compiler dependency cache, not this repository. Its native dependencies
+include libsodium (ISC), libcurl (curl license) and simdjson (Apache-2.0/MIT);
+retain the relevant upstream notices when redistributing binaries. Fixture tests
+also use installed Python cryptography (Apache-2.0/BSD) and its dependencies.
 
 The compiler/runtime is provided by [Goose](https://github.com/aardappel/goose),
 under Apache-2.0, at the exact revision in [GOOSE_REVISION](GOOSE_REVISION).

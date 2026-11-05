@@ -4,9 +4,10 @@ GOOSE ?= .toolchain/goose/build/goose
 CC ?= gcc
 SANITIZER_CC ?= gcc
 BENCH_ITERATIONS ?= 100000
+ARTIFACT_FLAGS ?=
 
 .NOTPARALLEL:
-.PHONY: all setup format check test bench bench-compare fuzz sanitize clean
+.PHONY: all setup format check test bench bench-compare fuzz sanitize artifact-check clean
 
 all: test
 
@@ -50,6 +51,10 @@ bench:
 
 bench-compare:
 	python3 scripts/compare.py --goose "$(abspath $(GOOSE))" --cc "$(CC)"
+
+artifact-check:
+	mkdir -p .build
+	python3 scripts/artifact-check.py --goose "$(abspath $(GOOSE))" --cc "$(CC)" $(ARTIFACT_FLAGS)
 
 clean:
 	rm -rf .build __pycache__ scripts/__pycache__ tests/__pycache__ bench/__pycache__

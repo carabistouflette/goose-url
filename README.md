@@ -16,6 +16,11 @@ a deliberate policy narrower than generic RFC port syntax. Generic empty hosts
 and relative references are allowed; callers must authorize network destinations.
 `origin_string` is a limited scheme/authority formatter, not a security identity.
 
+The optional [artifact download example](examples/artifact/README.md) applies an
+explicit caller-owned HTTPS host/port policy before using the pinned
+goose-artifact downloader. Its native/test dependencies are separate from the
+core library.
+
 ## Quickstart
 
 From a standalone clone:

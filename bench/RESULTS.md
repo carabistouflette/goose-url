@@ -1,34 +1,27 @@
-# Publication measurement sample
+# Recorded URL workloads
 
-Source: `91bd034844894e7174607a81147bbda58b556ff5` (clean). UTC recording: `2026-11-04T23:48:18.885782+00:00`.
+This clean run was recorded at `2026-11-04T23:48:18Z` from source `91bd034844894e7174607a81147bbda58b556ff5`. It used Goose `eadca409f68210893f366e60d0c2f0dc29a339be` (runtime `3025e5810379`), GCC 16.2.1, Python 3.14.9, Node v26.13.0 and libcurl 8.23.0 on Linux 7.2.11 x86-64, Intel Core Ultra 7 258V. The host was shared; the process could run on CPUs 0–7.
 
-Linux x86-64, Intel(R) Core(TM) Ultra 7 258V; GCC 16.2.1, Goose `eadca409f68210893f366e60d0c2f0dc29a339be`
-(runtime 3025e5810379), Python 3.14.9, Node v26.13.0, libcurl 8.23.0.
-Shared host, allowed CPU affinity [0, 1, 2, 3, 4, 5, 6, 7]; no exclusive-isolation claim.
+The current published main and tag `v0.1.0-alpha.1` are both `52cc3c9c810f8c413eaf1fd64661cc0c865fbd0a`. I checked each of the nine source-file SHA-256 values recorded in the [raw report](results/publication-2026-11-05.json) against that commit. All match, including `url.goose`, `address.goose`, the four benchmark drivers, comparison runner and compiler pin. The report contains the hashes and build commands.
 
-Three measured process samples per available driver follow one excluded process
-warmup. Each loop performs 100000 operations on one fixed input. Goose reports
-the following integer median timings for its own distinct workloads:
+Each row below shows the median and range across three measured process samples, in reported nanoseconds per operation. Each measured loop ran 100,000 operations after one excluded warmup process. Raw values, elapsed seconds and checksums are in the JSON report.
 
-| Workload | Reported median ns/operation |
-| --- | ---: |
-| `bench_parse` | 265 |
-| `bench_parse_view` | 188 |
-| `bench_resolve` | 304 |
-| `bench_dot_remove` | 83 |
-| `bench_query_parse` | 434 |
-| `bench_origin` | 121 |
-| `bench_query_sort` | 771 |
+| Driver and workload | Median ns/op | Sample range ns/op |
+| --- | ---: | ---: |
+| Goose `bench_parse` | 265 | 249–287 |
+| Goose `bench_parse_view` | 188 | 179–213 |
+| Goose `bench_resolve` | 304 | 287–307 |
+| Goose `bench_dot_remove` | 83 | 82–87 |
+| Goose `bench_query_parse` | 434 | 434–437 |
+| Goose `bench_origin` | 121 | 121–125 |
+| Goose `bench_query_sort` | 771 | 733–846 |
+| CURLU parse | 517.2 | 431.8–518.6 |
+| CURLU resolve | 1,973.5 | 1,904.0–2,056.0 |
+| Node URL parse | 636.9 | 631.6–740.2 |
+| Node URL resolve | 640.0 | 510.5–696.7 |
+| Python urlsplit parse | 1,708.9 | 1,696.2–1,756.8 |
+| Python urljoin resolve | 6,448.6 | 6,440.9–6,801.5 |
 
-The [raw report](results/publication-2026-11-05.json) retains every stdout result,
-checksum, elapsed duration, source/binary hashes, versions and C build transcript.
-Goose -O2 controls inlining; inspect the transcript for C optimization flags.
-All operations/checksums must succeed before any result is accepted.
+Goose `-O2` controls language inlining; the report keeps the actual C build transcript. The curl driver uses C `-O2`. These single-input workloads have different validation, allocation, caching and normalization contracts. They do not establish a cross-parser ranking or end-to-end latency.
 
-These workloads differ in validation, allocation, base-parse reuse and cache/JIT
-behavior. The external libcurl, Node and Python samples are labeled separately
-in the report; they are not equivalent implementations or a speed ranking.
-Driver clocks exclude startup; elapsed checks and assertions remain in the timed
-loops. No timing threshold, universal speedup or stability guarantee is inferred.
-See [benchmark boundaries](README.md) and rerun `make bench-compare CC=gcc`
-on your own workload before making performance decisions.
+Reproduce with `make bench-compare CC=gcc`. See [the workload boundaries](README.md).

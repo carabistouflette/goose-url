@@ -2,7 +2,7 @@
 
 This clean run was recorded at `2026-11-04T23:48:18Z` from source `91bd034844894e7174607a81147bbda58b556ff5`. It used Goose `eadca409f68210893f366e60d0c2f0dc29a339be` (runtime `3025e5810379`), GCC 16.2.1, Python 3.14.9, Node v26.13.0 and libcurl 8.23.0 on Linux 7.2.11 x86-64, Intel Core Ultra 7 258V. The host was shared; the process could run on CPUs 0–7.
 
-The current published main and tag `v0.1.0-alpha.1` are both `52cc3c9c810f8c413eaf1fd64661cc0c865fbd0a`. I checked each of the nine source-file SHA-256 values recorded in the [raw report](results/publication-2026-11-05.json) against that commit. All match, including `url.goose`, `address.goose`, the four benchmark drivers, comparison runner and compiler pin. The report contains the hashes and build commands.
+The source bridge was checked at commit `52cc3c9c810f8c413eaf1fd64661cc0c865fbd0a`, tagged `v0.1.0-alpha.1`. Each of the nine source-file SHA-256 values recorded in the [raw report](results/publication-2026-11-05.json) matches that commit, including `url.goose`, `address.goose`, the four benchmark drivers, comparison runner and compiler pin. The report contains the hashes and build commands. This identifies the verified source checkpoint, not the moving tip of `main`; recheck the recorded hashes before applying these results to a later revision.
 
 Each row below shows the median and range across three measured process samples, in reported nanoseconds per operation. Each measured loop ran 100,000 operations after one excluded warmup process. Raw values, elapsed seconds and checksums are in the JSON report.
 
